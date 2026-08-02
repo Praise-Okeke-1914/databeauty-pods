@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Databeauty Tribe — Pod Allocation Board</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Databeauty Tribe Business Challenge — pod (team) allocations. Find your team and your people.">
+
+<!-- Fonts: Space Grotesk (display/technical) + Inter (body/readable data typeface) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  /* =========================================================
+     DATABEAUTY TRIBE — POD ALLOCATION BOARD
+     Editable, framework-free HTML/CSS. Now RESPONSIVE:
+     - fluid width (single-column pods on phones, 2-up on wider screens)
+     - the print/export still renders each page as a 1080x1350 sheet
+     Row numbers are generated automatically with CSS counters —
+     add or remove a participant <li> and everything renumbers itself.
+     ========================================================= */
+
+  :root{
+    --navy:        #06122D;
+    --navy-soft:   #0B1A3D;
+    --blue:        #00A8FF;
+    --royal:       #0066FF;
+    --white:       #FFFFFF;
+    --paper:       #F5F8FC;
+    --ink-dim:     rgba(255,255,255,0.56);
+    --ink-faint:   rgba(255,255,255,0.34);
+    --card-line:   rgba(255,255,255,0.10);
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+
+  body{
+    background:#0A0F1C;
+    font-family:'Inter', sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:clamp(28px, 5vw, 48px);
+    padding:clamp(18px, 5vw, 48px);
+  }
+
+  /* =========================================================
+     PAGE — fluid on the web, 1080 x 1350 (4:5) when printed
+     ========================================================= */
+  .page{
+    position:relative;
+    width:100%;
+    max-width:1080px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(0,168,255,0.16), transparent 45%),
+      radial-gradient(circle at 0% 100%, rgba(0,102,255,0.14), transparent 42%),
+      var(--navy);
+    color:var(--white);
+    overflow:hidden;
+    border-radius:clamp(0px, 2vw, 22px);
+    padding:clamp(28px, 6vw, 64px) clamp(22px, 6vw, 72px) clamp(28px, 6vw, 56px);
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* faint technical grid texture — "data" motif, kept subtle */
+  .page::before{
+    content:"";
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size:54px 54px;
+    mask-image:linear-gradient(to bottom, black, transparent 78%);
+    pointer-events:none;
+  }
+
+  /* =========================================================
+     HEADER
+     ========================================================= */
+  .board-header{
+    position:relative;
+    text-align:center;
+    margin-bottom:clamp(28px, 5vw, 46px);
+  }
+
+  .brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:22px;
+  }
+
+  .brand-mark{
+    width:9px; height:9px;
+    background:var(--blue);
+    transform:rotate(45deg);
+    box-shadow:0 0 10px rgba(0,168,255,0.9);
+  }
+
+  .brand-eyebrow{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:clamp(11px, 2.6vw, 13px);
+    font-weight:600;
+    letter-spacing:0.32em;
+    color:var(--ink-dim);
+    text-transform:uppercase;
+  }
+
+  .event-name{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:clamp(12px, 2.8vw, 15px);
+    font-weight:500;
+    letter-spacing:0.14em;
+    color:var(--blue);
+    text-transform:uppercase;
+    margin-bottom:14px;
+  }
+
+  .main-heading{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:clamp(34px, 8vw, 64px);
+    font-weight:700;
+    letter-spacing:0.01em;
+    line-height:1;
+    background:linear-gradient(90deg, #FFFFFF 40%, #BFE8FF 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:16px;
+  }
+
+  .supporting-text{
+    font-size:clamp(14px, 3.2vw, 17px);
+    font-weight:400;
+    color:var(--ink-dim);
+    letter-spacing:0.01em;
+  }
+
+  .header-rule{
+    width:120px;
+    height:2px;
+    margin:26px auto 0;
+    background:linear-gradient(90deg, transparent, var(--blue), transparent);
+  }
+
+  /* =========================================================
+     POD GRID — single column on phones, 2 columns when wider
+     ========================================================= */
+  .pod-grid{
+    flex:1;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:clamp(16px, 3vw, 26px);
+  }
+  @media (min-width:720px){
+    .pod-grid{ grid-template-columns:1fr 1fr; }
+  }
+
+  /* =========================================================
+     POD CARD
+     Each card reads its accent color from --accent, set per
+     pod via the [data-pod] attribute below. Change the accent
+     of a pod by editing that one CSS rule.
+     ========================================================= */
+  .pod-card{
+    position:relative;
+    background:linear-gradient(165deg, rgba(255,255,255,0.055), rgba(255,255,255,0.015));
+    border:1px solid var(--card-line);
+    border-radius:20px;
+    padding:clamp(20px, 4vw, 26px) clamp(20px, 4vw, 28px) 22px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* material accent stripe along the top edge of every card */
+  .pod-card::before{
+    content:"";
+    position:absolute;
+    top:0; left:0; right:0;
+    height:4px;
+    background:linear-gradient(90deg, var(--accent), transparent 130%);
+  }
+
+  /* soft accent glow in the corner, keeps materials feeling premium not loud */
+  .pod-card::after{
+    content:"";
+    position:absolute;
+    top:-40px; right:-40px;
+    width:150px; height:150px;
+    border-radius:50%;
+    background:radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    opacity:0.16;
+    pointer-events:none;
+  }
+
+  /* ---- per-pod accent colors (edit hex to restyle a pod) ---- */
+  .pod-card[data-pod="gold"]      { --accent:#E8C15C; }
+  .pod-card[data-pod="diamond"]   { --accent:#8FE3FF; }
+  .pod-card[data-pod="platinum"]  { --accent:#D9DCE2; }
+  .pod-card[data-pod="silver"]    { --accent:#C7CDD6; }
+  .pod-card[data-pod="sapphire"]  { --accent:#3D7FE0; }
+  .pod-card[data-pod="emerald"]   { --accent:#4FD8A0; }
+  .pod-card[data-pod="ruby"]      { --accent:#F0526E; }
+  .pod-card[data-pod="pearl"]     { --accent:#F2ECDD; }
+
+  .pod-card-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    margin-bottom:16px;
+  }
+
+  .pod-id{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+
+  .pod-number{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:clamp(30px, 6vw, 38px);
+    font-weight:700;
+    line-height:1;
+    color:var(--accent);
+    letter-spacing:0;
+  }
+
+  .pod-name{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:clamp(16px, 3.6vw, 20px);
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--white);
+  }
+
+  /* faceted-gem mark — same silhouette across pods, tinted per material
+     so every card still reads as one cohesive family */
+  .pod-icon{
+    width:34px; height:34px;
+    flex-shrink:0;
+    opacity:0.9;
+  }
+
+  .pod-divider{
+    height:1px;
+    background:linear-gradient(90deg, var(--accent), transparent 85%);
+    opacity:0.45;
+    margin-bottom:16px;
+  }
+
+  /* =========================================================
+     PARTICIPANT LIST
+     Numbering is automatic (CSS counter). To add a participant,
+     copy one <li> block. To remove one, delete the <li> block.
+     ========================================================= */
+  .participant-list{
+    list-style:none;
+    counter-reset:row;
+    display:flex;
+    flex-direction:column;
+    gap:9px;
+    overflow-y:visible;
+  }
+
+  .participant-row{
+    counter-increment:row;
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+  }
+
+  .participant-row::before{
+    content:counter(row, decimal-leading-zero);
+    font-family:'Space Grotesk', sans-serif;
+    font-size:12px;
+    font-weight:600;
+    color:var(--accent);
+    opacity:0.85;
+    min-width:20px;
+    flex-shrink:0;
+  }
+
+  .participant-name{
+    font-size:clamp(14.5px, 3.4vw, 15.5px);
+    font-weight:500;
+    color:rgba(255,255,255,0.92);
+    letter-spacing:0.005em;
+    overflow-wrap:anywhere;
+  }
+
+  /* =========================================================
+     FOOTER
+     ========================================================= */
+  .board-footer{
+    position:relative;
+    margin-top:40px;
+    padding-top:20px;
+    border-top:1px solid var(--card-line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .footer-brand{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:0.18em;
+    color:var(--white);
+  }
+
+  .footer-tagline{
+    font-size:clamp(11px, 2.6vw, 12.5px);
+    font-weight:500;
+    letter-spacing:0.04em;
+    color:var(--ink-faint);
+  }
+
+  .page-tag{
+    position:absolute;
+    top:clamp(20px, 6vw, 64px); right:clamp(18px, 6vw, 72px);
+    font-family:'Space Grotesk', sans-serif;
+    font-size:12px;
+    letter-spacing:0.18em;
+    color:var(--ink-faint);
+  }
+
+  /* =========================================================
+     PRINT / EXPORT
+     Restores each .page to a fixed 1080x1350 (4:5) sheet with
+     the original 2x2 pod grid, so it still exports cleanly.
+     ========================================================= */
+  @media print{
+    body{ padding:0; gap:0; background:var(--navy); }
+    .page{
+      width:1080px; max-width:none; min-height:1350px;
+      border-radius:0; padding:64px 72px 56px;
+      page-break-after:always;
+    }
+    .pod-grid{ grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- =========================================================
+     PAGE 1 — GOLD · DIAMOND · PLATINUM · SILVER
+     ========================================================= -->
+<section class="page" id="page-1">
+  <span class="page-tag">01 / 02</span>
+
+  <header class="board-header">
+    <div class="brand-row">
+      <span class="brand-mark"></span>
+      <span class="brand-eyebrow">Databeauty Tribe</span>
+      <span class="brand-mark"></span>
+    </div>
+    <div class="event-name">Databeauty Tribe Business Challenge</div>
+    <h1 class="main-heading">MEET YOUR POD</h1>
+    <p class="supporting-text">Find your team. Meet your people. Let the challenge begin.</p>
+    <div class="header-rule"></div>
+  </header>
+
+  <div class="pod-grid">
+
+    <!-- ============ GOLD POD ============ -->
+    <div class="pod-card" data-pod="gold">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">01</span>
+          <span class="pod-name">Gold Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- GOLD POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+    <!-- ============ DIAMOND POD ============ -->
+    <div class="pod-card" data-pod="diamond">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">02</span>
+          <span class="pod-name">Diamond Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- DIAMOND POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+    <!-- ============ PLATINUM POD ============ -->
+    <div class="pod-card" data-pod="platinum">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">03</span>
+          <span class="pod-name">Platinum Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- PLATINUM POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+    <!-- ============ SILVER POD ============ -->
+    <div class="pod-card" data-pod="silver">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">04</span>
+          <span class="pod-name">Silver Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- SILVER POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+  </div>
+
+  <footer class="board-footer">
+    <span class="footer-brand">DATABEAUTY TRIBE</span>
+    <span class="footer-tagline">Learn &nbsp;•&nbsp; Collaborate &nbsp;•&nbsp; Solve &nbsp;•&nbsp; Grow</span>
+  </footer>
+</section>
+
+
+<!-- =========================================================
+     PAGE 2 — SAPPHIRE · EMERALD · RUBY · PEARL
+     ========================================================= -->
+<section class="page" id="page-2">
+  <span class="page-tag">02 / 02</span>
+
+  <header class="board-header">
+    <div class="brand-row">
+      <span class="brand-mark"></span>
+      <span class="brand-eyebrow">Databeauty Tribe</span>
+      <span class="brand-mark"></span>
+    </div>
+    <div class="event-name">Databeauty Tribe Business Challenge</div>
+    <h1 class="main-heading">MEET YOUR POD</h1>
+    <p class="supporting-text">Find your team. Meet your people. Let the challenge begin.</p>
+    <div class="header-rule"></div>
+  </header>
+
+  <div class="pod-grid">
+
+    <!-- ============ SAPPHIRE POD ============ -->
+    <div class="pod-card" data-pod="sapphire">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">05</span>
+          <span class="pod-name">Sapphire Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- SAPPHIRE POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+    <!-- ============ EMERALD POD ============ -->
+    <div class="pod-card" data-pod="emerald">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">06</span>
+          <span class="pod-name">Emerald Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- EMERALD POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+    <!-- ============ RUBY POD ============ -->
+    <div class="pod-card" data-pod="ruby">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">07</span>
+          <span class="pod-name">Ruby Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- RUBY POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+    <!-- ============ PEARL POD ============ -->
+    <div class="pod-card" data-pod="pearl">
+      <div class="pod-card-header">
+        <div class="pod-id">
+          <span class="pod-number">08</span>
+          <span class="pod-name">Pearl Pod</span>
+        </div>
+        <svg class="pod-icon" viewBox="0 0 34 34" fill="none">
+          <path d="M17 2 L30 12 L25 30 L9 30 L4 12 Z" stroke="currentColor" stroke-width="1.4" style="color:var(--accent)"/>
+          <path d="M17 2 L17 30 M4 12 L30 12 M9 30 L17 12 L25 30" stroke="currentColor" stroke-width="1" opacity="0.5" style="color:var(--accent)"/>
+        </svg>
+      </div>
+      <div class="pod-divider"></div>
+      <!-- PEARL POD PARTICIPANTS -->
+      <ol class="participant-list">
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+        <li class="participant-row"><span class="participant-name">Participant Name</span></li>
+      </ol>
+    </div>
+
+  </div>
+
+  <footer class="board-footer">
+    <span class="footer-brand">DATABEAUTY TRIBE</span>
+    <span class="footer-tagline">Learn &nbsp;•&nbsp; Collaborate &nbsp;•&nbsp; Solve &nbsp;•&nbsp; Grow</span>
+  </footer>
+</section>
+
+</body>
+</html>
